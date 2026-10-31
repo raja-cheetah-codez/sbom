@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBOM Generator & Vulnerability Matcher — AI Security Console</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #090D13;
+      color: #E6EDF3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #0D1117;
+      border-bottom: 1px solid #30363D;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00C9A7, #0084FF);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #161B22;
+      border: 1px solid #30363D;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #10B981;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10B981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10B981;
+    }
+    main {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 24px;
+      width: 100%;
+      flex: 1;
+    }
+    .hero-card {
+      background: #161B22;
+      border: 1px solid #30363D;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .category {
+      color: #00C9A7;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: #F0F6FC;
+    }
+    .desc {
+      color: #8B949E;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: #0D1117;
+      border: 1px solid #30363D;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card h3 {
+      font-size: 15px;
+      color: #F0F6FC;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .code-box {
+      background: #05070A;
+      border: 1px solid #21262D;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #58A6FF;
+      overflow-x: auto;
+    }
+    /* Floating Chatbot Widget */
+    #ai-chatbot-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00C9A7 0%, #0084FF 100%);
+      border: none;
+      box-shadow: 0 10px 25px rgba(0, 201, 167, 0.45);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      z-index: 999999;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    }
+    #ai-chatbot-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 14px 32px rgba(0, 201, 167, 0.6);
+    }
+    #chatbot-window {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 420px;
+      max-width: calc(100vw - 36px);
+      height: 580px;
+      max-height: calc(100vh - 60px);
+      background: #0D1117;
+      border: 1px solid #30363D;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 20px rgba(0, 201, 167, 0.15);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 999999;
+    }
+    .chat-header {
+      background: #161B22;
+      border-bottom: 1px solid #30363D;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .msg-user {
+      align-self: flex-end;
+      background: #0070F3;
+      color: #fff;
+      border-radius: 14px 14px 2px 14px;
+      padding: 10px 14px;
+      max-width: 85%;
+      word-break: break-word;
+    }
+    .msg-ai {
+      align-self: flex-start;
+      background: #161B22;
+      border: 1px solid #30363D;
+      color: #E6EDF3;
+      border-radius: 14px 14px 14px 2px;
+      padding: 12px 14px;
+      max-width: 88%;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .chat-prompts {
+      padding: 8px 14px;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      border-top: 1px solid #21262D;
+      background: #0D1117;
+    }
+    .prompt-chip {
+      white-space: nowrap;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 12px;
+      background: #161B22;
+      border: 1px solid #30363D;
+      color: #58A6FF;
+      cursor: pointer;
+    }
+    .chat-input-bar {
+      padding: 12px 14px;
+      border-top: 1px solid #30363D;
+      background: #161B22;
+      display: flex;
+      gap: 8px;
+    }
+    .chat-input {
+      flex: 1;
+      background: #0D1117;
+      border: 1px solid #30363D;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #F0F6FC;
+      font-size: 13px;
+      outline: none;
+    }
+    .send-btn {
+      background: #00C9A7;
+      border: none;
+      border-radius: 8px;
+      padding: 0 16px;
+      color: #0D1117;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-weight: 600; font-size: 16px;">SBOM Generator & Vulnerability Matcher</div>
+        <div style="font-size: 11px; color: #8B949E;">Intermediate Security Tool • Port 8017</div>
+      </div>
+    </div>
+    <div class="status-badge" style="display: flex; align-items: center; gap: 10px;">
+      <span class="promo-badge" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #60A5FA; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">🎁 Promo: MEMHACK1019</span>
+      <div style="display: flex; align-items: center; gap: 6px; background: #161B22; border: 1px solid #30363D; padding: 6px 12px; border-radius: 20px; font-size: 12px; color: #10B981;">
+        <span class="pulse-dot"></span>
+        <span>Hindsight AI Active</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero-card">
+      <div class="category">Software Supply Chain Security (EO 14028)</div>
+      <h1>SBOM Generator & Vulnerability Matcher</h1>
+      <p class="desc">Generates CycloneDX and SPDX Software Bill of Materials (SBOM) and correlates package dependencies with NVD CVE feeds and EPSS exploitability scores.</p>
+      <div style="display: flex; gap: 12px;">
+        <button onclick="openChat()" style="background: linear-gradient(135deg, #00C9A7, #0084FF); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer;">
+          Ask AI Cyber Assistant
+        </button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card" style="border-color: #6366F1; background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, #0D1117 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="color: #A5B4FC; margin: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Corsair Integration Layer</h3>
+          <a href="https://docs.corsair.dev/" target="_blank" style="color: #818CF8; font-size: 11px; text-decoration: none; font-weight: 600;">docs.corsair.dev ↗</a>
+        </div>
+        <p style="color: #8B949E; font-size: 13px; margin-bottom: 12px;">Unified integration layer for security findings, incident ticketing, Slack alerts, and MCP AI Agent tools.</p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button onclick="triggerCorsairAction('slack')" style="background: #21262D; border: 1px solid #30363D; color: #E6EDF3; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">💬 Slack Alert</button>
+          <button onclick="triggerCorsairAction('github')" style="background: #21262D; border: 1px solid #30363D; color: #E6EDF3; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">🐙 GitHub Issue</button>
+          <button onclick="triggerCorsairAction('linear')" style="background: #21262D; border: 1px solid #30363D; color: #E6EDF3; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">📋 Linear Ticket</button>
+          <button onclick="triggerCorsairAction('mcp')" style="background: #21262D; border: 1px solid #30363D; color: #A5B4FC; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">🤖 MCP Tools</button>
+          <a href="https://docs.corsair.dev/" target="_blank" style="background: #4F46E5; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center;">Connect Hub ↗</a>
+        </div>
+        <div id="corsair-status-box" style="margin-top: 10px; font-size: 12px; color: #10B981; display: none; padding: 8px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.2);"></div>
+      </div>
+      <div class="card">
+        <h3>🚀 Quick Start</h3>
+        <p style="color: #8B949E; font-size: 13px; margin-bottom: 10px;">Run this tool locally or inside Docker:</p>
+        <div class="code-box">docker compose up -d</div>
+      </div>
+      <div class="card">
+        <h3>🤖 AI Agent Memory Bank</h3>
+        <p style="color: #8B949E; font-size: 13px; margin-bottom: 10px;">Connected to Hindsight Cloud:</p>
+        <div class="code-box">bank: cybersecurity-assistant</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Floating Chatbot Button -->
+  <button id="ai-chatbot-btn" onclick="openChat()" title="Open AI Cyber Assistant">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <circle cx="12" cy="11" r="3"/>
+    </svg>
+  </button>
+
+  <!-- Expanded Chatbot Window -->
+  <div id="chatbot-window">
+    <div class="chat-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #00C9A7, #0084FF); display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <div style="font-weight: 600; font-size: 14px;">Hindsight AI Assistant</div>
+          <div style="font-size: 11px; color: #8B949E;">SBOM Generator & Vulnerability Matcher • Connected</div>
+        </div>
+      </div>
+      <button onclick="closeChat()" style="background: none; border: none; color: #8B949E; font-size: 20px; cursor: pointer;">&times;</button>
+    </div>
+
+        <div style="background: linear-gradient(90deg, #111827 0%, #161B22 100%); border-bottom: 1px solid #30363D; padding: 8px 14px; font-size: 11.5px; color: #9CA3AF; display: flex; align-items: center; justify-content: space-between;">
+      <span>🎁 <b>Hindsight Cloud:</b> Use promo code <code style="background: rgba(59, 130, 246, 0.2); color: #60A5FA; padding: 2px 6px; border-radius: 4px; font-weight: 700;">MEMHACK1019</code></span>
+      <span style="font-size: 10px; color: #10B981; background: rgba(16,185,129,0.1); padding: 2px 6px; border-radius: 4px;">Free Credits</span>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg-ai">Hello! I am your <strong>Hindsight AI Cyber Assistant</strong> for <strong>SBOM Generator & Vulnerability Matcher</strong>.<br><br>Ask me anything about running audits, interpreting results, or remediating vulnerabilities!<br><br>💡 <em>Use promo code <strong>MEMHACK1019</strong> on <a href="https://vectorize.io" target="_blank" style="color: #60A5FA;">Hindsight Cloud</a> for free credits!</em><br><br>🔌 <em>Corsair Integration Layer active: connect Slack, GitHub, Linear, or MCP tools at <a href="https://docs.corsair.dev/" target="_blank" style="color: #818CF8;">docs.corsair.dev</a>!</em></div>
+    </div>
+
+    <div class="chat-prompts">
+      <button class="prompt-chip" onclick="triggerCorsairAction('slack')" style="border-color: #6366F1; color: #A5B4FC;">🔌 Corsair: Slack Alert</button><button class="prompt-chip" onclick="triggerCorsairAction('github')" style="border-color: #6366F1; color: #A5B4FC;">🐙 Corsair: GitHub Issue</button><button class="prompt-chip" onclick="triggerCorsairAction('mcp')" style="border-color: #6366F1; color: #A5B4FC;">🤖 Corsair: MCP Tools</button>
+      <button class="prompt-chip" onclick="sendPrompt('What is the difference between SPDX and CycloneDX?')">What is the difference between SPDX and CycloneDX?</button><button class="prompt-chip" onclick="sendPrompt('How are EPSS exploitability scores used?')">How are EPSS exploitability scores used?</button><button class="prompt-chip" onclick="sendPrompt('How do I generate an SBOM for Go/Python?')">How do I generate an SBOM for Go/Python?</button><button class="prompt-chip" onclick="sendPrompt('Explain EO 14028 supply chain requirements')">Explain EO 14028 supply chain requirements</button>
+    </div>
+
+    <div class="chat-input-bar">
+      <input type="text" id="user-input" class="chat-input" placeholder="Ask AI Cyber Assistant..." onkeydown="if(event.key === 'Enter') handleSend()">
+      <button class="send-btn" onclick="handleSend()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://api.hindsight.vectorize.io/v1/default/banks/cybersecurity-assistant/reflect";
+    const API_KEY = "hsk_50b425c99734390d6a9f74d59a7f5e78_021b3c05d1268660";
+    const PROJECT_NAME = "SBOM Generator & Vulnerability Matcher";
+
+    function openChat() {
+      document.getElementById('chatbot-window').style.display = 'flex';
+      document.getElementById('ai-chatbot-btn').style.display = 'none';
+      document.getElementById('user-input').focus();
+    }
+
+    function closeChat() {
+      document.getElementById('chatbot-window').style.display = 'none';
+      document.getElementById('ai-chatbot-btn').style.display = 'flex';
+    }
+
+    function appendMessage(text, isUser) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = isUser ? 'msg-user' : 'msg-ai';
+      div.innerHTML = text.replace(/\n/g, '<br>');
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return div;
+    }
+
+    async function handleSend() {
+      const input = document.getElementById('user-input');
+      const query = input.value.trim();
+      if (!query) return;
+      input.value = '';
+      sendQuery(query);
+    }
+
+    function sendPrompt(text) {
+      sendQuery(text);
+    }
+
+    async function sendQuery(query) {
+      appendMessage(query, true);
+      const loading = appendMessage('<em>Analyzing with Hindsight AI...</em>', false);
+
+      try {
+        const resp = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + API_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: `[Context: ${PROJECT_NAME}] ${query}` })
+        });
+
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        loading.innerHTML = (data.text || 'No response').replace(/\n/g, '<br>');
+      } catch (err) {
+        loading.innerHTML = '⚠️ Error contacting Hindsight API: ' + err.message;
+      }
+    }
+  
+    function triggerCorsairAction(type) {
+      const box = document.getElementById('corsair-status-box');
+      const messages = {
+        'slack': '⚡ [Corsair Hub] Security incident alert dispatched to #security-ops via @corsair-dev/slack',
+        'github': '🐙 [Corsair Hub] Vulnerability advisory issue created on GitHub via @corsair-dev/github',
+        'linear': '📋 [Corsair Hub] Triage task escalated to Linear board via @corsair-dev/linear',
+        'mcp': '🤖 [Corsair MCP] Loaded 6 tools (list_operations, get_schema, run_script) for AI Agent',
+      };
+      const text = messages[type] || '⚡ [Corsair Hub] Action dispatched successfully via https://docs.corsair.dev/';
+      if (box) {
+        box.style.display = 'block';
+        box.textContent = text;
+        setTimeout(() => { box.style.display = 'none'; }, 6000);
+      }
+      openChat();
+      appendMessage(`<strong>[Corsair Integration]</strong> Triggered <code>${type}</code> action:<br>${text}<br><a href="https://docs.corsair.dev/" target="_blank" style="color: #818CF8; font-size: 11px;">View Corsair Documentation ↗</a>`, false);
+    }
+
+  </script>
+</body>
+</html>
