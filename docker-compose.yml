@@ -1,0 +1,19 @@
+services:
+  sbom-generator-vulnerability-matcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sbom-generator-vulnerability-matcher
+    restart: unless-stopped
+    ports:
+      - "8017:8017"
+    environment:
+      - CORSAIR_API_KEY=ck_dev_sec_9941a37c98f10b2d6a
+      - CORSAIR_KEK=k3k_b64_9a8f27e10c55490ba8208f6d7c9281a4b5d6e7f8
+      - CORSAIR_HUB_URL=https://hub.corsair.dev
+      - CORSAIR_DOCS_URL=https://docs.corsair.dev/
+      - CORSAIR_TENANT_ID=cybersecurity-lab
+      - HINDSIGHT_PROMO_CODE=MEMHACK1019
+      - HINDSIGHT_API_KEY=hsk_50b425c99734390d6a9f74d59a7f5e78_021b3c05d1268660
+      - HINDSIGHT_API_URL=https://api.hindsight.vectorize.io/v1/default/banks/cybersecurity-assistant/reflect
+      - PORT=8017
